@@ -128,6 +128,18 @@ fun SharedStorageMedia(modifier: Modifier = Modifier, navBackStackEntry: NavBack
                 ).show()
             }
         }
+    val sharedMediaDeletePermissionLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.StartIntentSenderForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                viewModel.onDeletePermissionGranted()
+            } else {
+                Toast.makeText(
+                    context,
+                    "Please grant permission to delete the image file",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     DisposableEffect(key1 = Unit) {
         if (viewModel.contentObserver == null) {
             val contentUri = isSdk29andUp {
@@ -236,6 +248,28 @@ fun SharedStorageMedia(modifier: Modifier = Modifier, navBackStackEntry: NavBack
                         }
                     }
                 }
+
+                is SharedStorageScreenEvents.DeleteImage -> {
+                    try {
+                        val rowsAffected = StorageUtils.deletedSharedMediaFile(context,event.image.id,event.image.contentUri)
+                        if (rowsAffected > 0) {
+                            Toast.makeText(context,"File deleted successfully!",Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (exception:SecurityException) {
+                        isSdk29andUp {
+                            val recoverableSecurityException = exception as? RecoverableSecurityException
+                            if (recoverableSecurityException != null) {
+                                val intentSender = recoverableSecurityException.userAction.actionIntent.intentSender
+                                val intentSenderRequest = IntentSenderRequest.Builder(intentSender).build()
+                                sharedMediaDeletePermissionLauncher.launch(intentSenderRequest)
+                            }
+                        } ?: Toast.makeText(
+                            context,
+                            "Unable to delete file. Please try again!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
             }
         }
     }
@@ -249,7 +283,8 @@ fun SharedStorageMedia(modifier: Modifier = Modifier, navBackStackEntry: NavBack
             ImageActionDialog(
                 mediaStoreImage = screenState.selectedFile!!,
                 onDismiss = viewModel::onImageDismiss,
-                onRenameClick = viewModel::onImageRename
+                onRenameClick = viewModel::onImageRename,
+                onDeleteImageClick = viewModel::onDeleteImageClick
             )
         }
         LazyVerticalStaggeredGrid(

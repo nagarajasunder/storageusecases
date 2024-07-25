@@ -108,6 +108,20 @@ class SharedStorageMediaViewModel @Inject constructor() : ViewModel(), SharedSto
         }
     }
 
+    override fun onDeleteImageClick() {
+        viewModelScope.launch {
+            eventChannel.send(SharedStorageScreenEvents.DeleteImage(_screenState.value.selectedFile!!))
+            updateState(_screenState.value.copy(showImageDialog = false))
+        }
+    }
+
+    override fun onDeletePermissionGranted() {
+       viewModelScope.launch {
+           eventChannel.send(SharedStorageScreenEvents.DeleteImage(_screenState.value.selectedFile!!))
+           updateState(_screenState.value.copy(selectedFile = null))
+       }
+    }
+
 
     private fun updateState(newState: SharedMediaState): SharedMediaState {
         return _screenState.updateAndGet {

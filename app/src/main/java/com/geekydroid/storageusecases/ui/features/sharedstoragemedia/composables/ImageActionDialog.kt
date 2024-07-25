@@ -1,6 +1,8 @@
 package com.geekydroid.storageusecases.ui.features.sharedstoragemedia.composables
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Card
@@ -26,8 +28,9 @@ import com.geekydroid.storageusecases.ui.features.sharedstoragemedia.models.Medi
 fun ImageActionDialog(
     modifier: Modifier = Modifier,
     mediaStoreImage: MediaStoreImage,
-    onDismiss:() -> Unit,
-    onRenameClick: (String) -> Unit
+    onDismiss: () -> Unit,
+    onRenameClick: (String) -> Unit,
+    onDeleteImageClick: () -> Unit
 ) {
 
     Dialog(onDismissRequest = onDismiss) {
@@ -51,8 +54,19 @@ fun ImageActionDialog(
             TextField(value = imageName, onValueChange = { newValue ->
                 imageName = newValue
             })
-            TextButton(onClick = { onRenameClick(imageName) }, enabled = imageName.isNotEmpty()) {
-                Text(text = stringResource(id = R.string.rename))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                TextButton(
+                    onClick = { onRenameClick(imageName) },
+                    enabled = imageName.isNotEmpty()
+                ) {
+                    Text(text = stringResource(id = R.string.rename))
+                }
+                TextButton(onClick = onDeleteImageClick) {
+                    Text(text = stringResource(id = R.string.delete))
+                }
             }
         }
     }

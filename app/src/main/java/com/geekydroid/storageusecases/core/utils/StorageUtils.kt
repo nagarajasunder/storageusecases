@@ -243,4 +243,16 @@ object StorageUtils {
         }
     }
 
+    fun deletedSharedMediaFile(context: Context, mediaId:Long,contentUri: Uri) : Int {
+        try {
+            val contentResolver = context.contentResolver
+            val selection = "${MediaStore.Images.Media._ID} = ?"
+            val selectionArgs = arrayOf(mediaId.toString())
+            val numImageDeleted = contentResolver.delete(contentUri,selection,selectionArgs)
+            return numImageDeleted
+        } catch (securityException:SecurityException) {
+            throw securityException
+        }
+    }
+
 }
