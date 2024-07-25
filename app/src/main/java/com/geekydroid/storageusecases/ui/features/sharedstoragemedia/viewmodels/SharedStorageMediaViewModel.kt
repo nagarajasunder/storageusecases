@@ -1,19 +1,13 @@
 package com.geekydroid.storageusecases.ui.features.sharedstoragemedia.viewmodels
 
 import android.database.ContentObserver
-import android.net.Uri
-import androidx.compose.ui.graphics.ShaderBrush
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.geekydroid.storageusecases.core.utils.StorageUtils
-import com.geekydroid.storageusecases.core.utils.StorageUtils.isSdk29andUp
-import com.geekydroid.storageusecases.ui.features.sharedstoragemedia.composables.SharedStorageMedia
 import com.geekydroid.storageusecases.ui.features.sharedstoragemedia.models.MediaStoreImage
 import com.geekydroid.storageusecases.ui.features.sharedstoragemedia.screenactions.SharedStorageScreenActions
 import com.geekydroid.storageusecases.ui.features.sharedstoragemedia.screenevents.SharedStorageScreenEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -22,10 +16,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class SharedMediaState(
-    val images: List<MediaStoreImage>
+    val images: List<MediaStoreImage>,
+    val showImageDialog: Boolean,
+    val selectedFile: MediaStoreImage?
 ) {
     companion object {
-        val initialState = SharedMediaState(images = emptyList())
+        val initialState =
+            SharedMediaState(images = emptyList(), showImageDialog = false, selectedFile = null)
     }
 }
 
@@ -34,7 +31,7 @@ class SharedStorageMediaViewModel @Inject constructor() : ViewModel(), SharedSto
 
     private val eventChannel: Channel<SharedStorageScreenEvents> = Channel()
     val events = eventChannel.receiveAsFlow()
-    var contentObserver:ContentObserver? = null
+    var contentObserver: ContentObserver? = null
         private set
 
     private val _screenState: MutableStateFlow<SharedMediaState> =
@@ -52,7 +49,6 @@ class SharedStorageMediaViewModel @Inject constructor() : ViewModel(), SharedSto
             eventChannel.send(SharedStorageScreenEvents.CaptureImage)
         }
     }
-
 
 
     override fun updateImageUri(uris: List<MediaStoreImage>) {
@@ -74,6 +70,44 @@ class SharedStorageMediaViewModel @Inject constructor() : ViewModel(), SharedSto
     override fun updateContentObserver(contentObserver: ContentObserver) {
         this.contentObserver = contentObserver
     }
+
+    override fun onImageClick(mediaStoreImage: MediaStoreImage) {
+        updateState(_screenState.value.copy(showImageDialog = true, selectedFile = mediaStoreImage))
+    }
+
+    override fun onImageDismiss() {
+        updateState(_screenState.value.copy(showImageDialog = false))
+    }
+
+    override fun onImageRename(newName: String) {
+        viewModelScope.launch {
+            val updatedFile = screenState.value.selectedFile!!.copy(displayName = newName)
+            eventChannel.send(
+                SharedStorageScreenEvents.RenameImage(
+                    updatedFile,
+                    newName
+                )
+            )
+            updateState(_screenState.value.copy(selectedFile = updatedFile, showImageDialog = false))
+        }
+    }
+
+    /**
+     * This is not the ideal way, but since the intentSenderRequest's result always returns a null intent I have implemented this way
+     */
+
+    override fun onImageRenamePermissionGranted() {
+        viewModelScope.launch {
+            eventChannel.send(
+                SharedStorageScreenEvents.RenameImage(
+                    screenState.value.selectedFile!!,
+                    screenState.value.selectedFile!!.displayName
+                )
+            )
+            updateState(_screenState.value.copy(selectedFile = null))
+        }
+    }
+
 
     private fun updateState(newState: SharedMediaState): SharedMediaState {
         return _screenState.updateAndGet {

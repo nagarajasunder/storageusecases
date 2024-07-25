@@ -2,6 +2,7 @@ package com.geekydroid.storageusecases.core.utils
 
 import android.content.ContentResolver
 import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.database.ContentObservable
@@ -144,16 +145,23 @@ object StorageUtils {
             )
             query?.use { cursor ->
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
-                val displayNameColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
-                val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
-                while(cursor.moveToNext()) {
+                val displayNameColumn =
+                    cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
+                val dateAddedColumn =
+                    cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
+                while (cursor.moveToNext()) {
                     val id = cursor.getLong(idColumn)
                     val dateAdded = Date(TimeUnit.SECONDS.toMillis(cursor.getLong(dateAddedColumn)))
                     val displayName = cursor.getString(displayNameColumn)
 
-                    val contentUri = ContentUris.withAppendedId(collectionUri,id)
-                    val image = MediaStoreImage(id = id,displayName = displayName, dateAdded = dateAdded, contentUri = contentUri)
-                    result+=image
+                    val contentUri = ContentUris.withAppendedId(collectionUri, id)
+                    val image = MediaStoreImage(
+                        id = id,
+                        displayName = displayName,
+                        dateAdded = dateAdded,
+                        contentUri = contentUri
+                    )
+                    result += image
                 }
             }
             Log.d(TAG, "fetchImagesFromSharedStorage: ${result.size}")
@@ -169,33 +177,70 @@ object StorageUtils {
         }
     }
 
-    data class PermissionResult(val allPermissionGranted:Boolean,val deniedPermission:Array<String>)
+    inline fun <T> isSdk33andUp(onSdk32andUp: () -> T): T? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            onSdk32andUp()
+        } else {
+            null
+        }
+    }
 
-    fun checkIfPermissionsAreGranted(context:Context,permissions:List<String>) : PermissionResult {
+    data class PermissionResult(
+        val allPermissionGranted: Boolean,
+        val deniedPermission: Array<String>
+    )
+
+    fun checkIfPermissionsAreGranted(
+        context: Context,
+        permissions: List<String>
+    ): PermissionResult {
         var allPermissionGranted = true
         val missingPermission = mutableListOf<String>()
         permissions.forEach { permission ->
-            val result = ContextCompat.checkSelfPermission(context,permission) == PackageManager.PERMISSION_GRANTED
+            val result = ContextCompat.checkSelfPermission(
+                context,
+                permission
+            ) == PackageManager.PERMISSION_GRANTED
             if (!result) {
                 allPermissionGranted = false
                 missingPermission += permission
             }
         }
-        val result = PermissionResult(allPermissionGranted = allPermissionGranted, deniedPermission = missingPermission.toTypedArray())
+        val result = PermissionResult(
+            allPermissionGranted = allPermissionGranted,
+            deniedPermission = missingPermission.toTypedArray()
+        )
         return result
     }
 
     fun ContentResolver.registerObserver(
-        uri:Uri,
-        observer: (selfChange:Boolean) -> Unit
-    ) : ContentObserver {
+        uri: Uri,
+        observer: (selfChange: Boolean) -> Unit
+    ): ContentObserver {
         val contentObserver = object : ContentObserver(Handler()) {
             override fun onChange(selfChange: Boolean) {
                 observer(selfChange)
             }
         }
-        registerContentObserver(uri,true,contentObserver)
+        registerContentObserver(uri, true, contentObserver)
         return contentObserver
+    }
+
+    fun renameSharedMedia(context: Context, mediaId: Long, contentUri: Uri, newName: String): Int {
+        try {
+            val contentResolver = context.contentResolver
+            val selection = "${MediaStore.Images.Media._ID} = ?"
+            val selectionArgs = arrayOf(mediaId.toString())
+
+            val updatedImageDetails = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, newName)
+            }
+            val numImagesUpdated =
+                contentResolver.update(contentUri, updatedImageDetails, selection, selectionArgs)
+            return numImagesUpdated
+        } catch (securityException: SecurityException) {
+            throw securityException
+        }
     }
 
 }

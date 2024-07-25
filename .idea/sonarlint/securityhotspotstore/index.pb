@@ -76,3 +76,7 @@ yapp/src/main/java/com/geekydroid/storageusecases/ui/features/sharedstoragemedia
 {app/src/main/java/com/geekydroid/storageusecases/ui/features/sharedstoragemedia/screenactions/SharedStorageScreenActions.kt,5/5/556b6ca4cad1d3394fb867f20fcceae801a1c461
 ™
 iapp/src/main/java/com/geekydroid/storageusecases/ui/features/sharedstoragemedia/models/MediaStoreImage.kt,d/6/d64c640e91c9e90ecb45919055ab70a4896a5231
+ž
+napp/src/main/java/com/geekydroid/storageusecases/ui/features/sharedstoragemedia/composables/ImageActionCard.kt,6/9/691c892bf6383fa634dec55c00a90429ee75f8b3
+ 
+papp/src/main/java/com/geekydroid/storageusecases/ui/features/sharedstoragemedia/composables/ImageActionDialog.kt,2/b/2b6b19313537b1e3cc66bf47994c8e74a3b8cc79

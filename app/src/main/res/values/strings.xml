@@ -3,4 +3,5 @@
     <string name="image_info">Image Info</string>
     <string name="camera">Camera</string>
     <string name="image">Image</string>
+    <string name="rename">rename</string>
 </resources>
