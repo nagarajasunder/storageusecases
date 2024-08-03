@@ -18,7 +18,8 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onInternalStorageTextFileClick: () -> Unit,
     onInternalStorageMediaFileClick: () -> Unit,
-    onSharedStorageMediaClick: () -> Unit
+    onSharedStorageMediaClick: () -> Unit,
+    onSharedStorageDocumentClick: () -> Unit
 ) {
     Surface(
         modifier = modifier
@@ -29,7 +30,9 @@ fun HomeScreen(
             item {
                 Card(
                     onClick = onInternalStorageTextFileClick,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         "Internal Storage Text Files Operations",
@@ -40,7 +43,9 @@ fun HomeScreen(
             item {
                 Card(
                     onClick = onInternalStorageMediaFileClick,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         "Internal Storage Media Files Operations",
@@ -51,10 +56,25 @@ fun HomeScreen(
             item {
                 Card(
                     onClick = onSharedStorageMediaClick,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         "Shared Storage Media Operations",
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    onClick = onSharedStorageDocumentClick
+                ) {
+                    Text(
+                        "Shared Storage Document Operations",
                         modifier = Modifier.padding(12.dp)
                     )
                 }

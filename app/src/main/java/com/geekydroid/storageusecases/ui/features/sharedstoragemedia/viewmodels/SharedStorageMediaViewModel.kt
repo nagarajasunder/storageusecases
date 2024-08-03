@@ -122,6 +122,13 @@ class SharedStorageMediaViewModel @Inject constructor() : ViewModel(), SharedSto
        }
     }
 
+    override fun onRenamePermissionGrantedForSdkBelow28() {
+        viewModelScope.launch {
+            eventChannel.send(SharedStorageScreenEvents.RenameImage(_screenState.value.selectedFile!!,_screenState.value.selectedFile!!.displayName))
+            updateState(_screenState.value.copy(selectedFile = null))
+        }
+    }
+
 
     private fun updateState(newState: SharedMediaState): SharedMediaState {
         return _screenState.updateAndGet {

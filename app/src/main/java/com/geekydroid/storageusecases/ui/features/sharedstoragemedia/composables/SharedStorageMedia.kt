@@ -7,7 +7,6 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
@@ -17,8 +16,6 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.launch
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -34,6 +31,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -48,14 +48,13 @@ import com.geekydroid.storageusecases.core.application.KEY_MEDIA_ID
 import com.geekydroid.storageusecases.core.application.KEY_MEDIA_URI
 import com.geekydroid.storageusecases.core.application.RENAME_IMAGE_KEY
 import com.geekydroid.storageusecases.core.utils.StorageUtils
+import com.geekydroid.storageusecases.core.utils.StorageUtils.checkIfPermissionsAreGranted
 import com.geekydroid.storageusecases.core.utils.StorageUtils.isSdk29andUp
 import com.geekydroid.storageusecases.core.utils.StorageUtils.isSdk33andUp
 import com.geekydroid.storageusecases.core.utils.StorageUtils.registerObserver
-import com.geekydroid.storageusecases.ui.features.sharedstoragemedia.models.MediaStoreImage
 import com.geekydroid.storageusecases.ui.features.sharedstoragemedia.screenevents.SharedStorageScreenEvents
 import com.geekydroid.storageusecases.ui.features.sharedstoragemedia.viewmodels.SharedStorageMediaViewModel
 import okio.IOException
-import java.util.Date
 
 const val SHARED_STORAGE_MEDIA_ROUTE = "sharedstoragemedia"
 private const val TAG = "SharedStorageMedia"
@@ -82,23 +81,15 @@ fun SharedStorageMedia(modifier: Modifier = Modifier, navBackStackEntry: NavBack
             }
         }
 
-    val writePermissionLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestMultiplePermissions()) { result ->
-            var allPermissionGranted = true
-            result.forEach { (_, result) ->
-                if (!result) {
-                    allPermissionGranted = false
-                    Toast.makeText(
-                        context,
-                        "Please grant the required permission",
-                        Toast.LENGTH_SHORT
-                    )
-                        .show()
-                    return@forEach
-                }
-            }
-            if (allPermissionGranted) {
-                viewModel.onStoragePermissionGranted()
+    var multiplePermissionLauncherResultHandler : ((Map<String,Boolean>) -> Unit)? by remember {
+        mutableStateOf(null)
+    }
+
+    val multiplePermissionRequestLauncher =
+        rememberLauncherForActivityResult(contract  = ActivityResultContracts.RequestMultiplePermissions()) { result ->
+            if (multiplePermissionLauncherResultHandler != null) {
+                multiplePermissionLauncherResultHandler?.invoke(result)
+                multiplePermissionLauncherResultHandler = null
             }
         }
 
@@ -140,6 +131,7 @@ fun SharedStorageMedia(modifier: Modifier = Modifier, navBackStackEntry: NavBack
                 ).show()
             }
         }
+
     DisposableEffect(key1 = Unit) {
         if (viewModel.contentObserver == null) {
             val contentUri = isSdk29andUp {
@@ -170,11 +162,11 @@ fun SharedStorageMedia(modifier: Modifier = Modifier, navBackStackEntry: NavBack
 
                 SharedStorageScreenEvents.RequestStoragePermission -> {
                     val result = isSdk29andUp {
-                        StorageUtils.checkIfPermissionsAreGranted(
+                        checkIfPermissionsAreGranted(
                             context,
                             listOf(Manifest.permission.CAMERA)
                         )
-                    } ?: StorageUtils.checkIfPermissionsAreGranted(
+                    } ?: checkIfPermissionsAreGranted(
                         context,
                         listOf(
                             Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -182,7 +174,26 @@ fun SharedStorageMedia(modifier: Modifier = Modifier, navBackStackEntry: NavBack
                         )
                     )
                     if (!result.allPermissionGranted) {
-                        writePermissionLauncher.launch(result.deniedPermission)
+                        multiplePermissionLauncherResultHandler =  { permissionResult ->
+                            var allPermissionGranted = true
+                            permissionResult.forEach { (_, result) ->
+                                if (!result) {
+                                    allPermissionGranted = false
+                                    Toast.makeText(
+                                        context,
+                                        "Please grant the required permission",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                        .show()
+                                    return@forEach
+                                }
+                            }
+                            if (allPermissionGranted) {
+                                viewModel.onStoragePermissionGranted()
+                            }
+
+                        }
+                        multiplePermissionRequestLauncher.launch(result.deniedPermission)
                     } else {
                         takePhoto.launch()
                     }
@@ -199,7 +210,7 @@ fun SharedStorageMedia(modifier: Modifier = Modifier, navBackStackEntry: NavBack
                         Manifest.permission.READ_MEDIA_IMAGES
                     } ?: Manifest.permission.READ_EXTERNAL_STORAGE
                     val result =
-                        StorageUtils.checkIfPermissionsAreGranted(context, listOf(permission))
+                        checkIfPermissionsAreGranted(context, listOf(permission))
                     if (result.allPermissionGranted) {
                         viewModel.onReadPermissionGranted()
                     } else {
@@ -244,6 +255,39 @@ fun SharedStorageMedia(modifier: Modifier = Modifier, navBackStackEntry: NavBack
                                     "Unable to rename file. Please try again!",
                                     Toast.LENGTH_SHORT
                                 ).show()
+                            }
+                        } else {
+                            val result = checkIfPermissionsAreGranted(context, listOf(Manifest.permission.WRITE_EXTERNAL_STORAGE))
+                            if (result.allPermissionGranted) {
+                                Log.d(TAG, "SharedStorageMedia: all permission granted")
+                                viewModel.onRenamePermissionGrantedForSdkBelow28()
+                            } else {
+                                multiplePermissionLauncherResultHandler = { permissionResults ->
+                                    var allPermissionGranted = true
+                                    permissionResults.forEach { (_, result) ->
+                                        if (!result) {
+                                            allPermissionGranted = false
+                                            Toast.makeText(
+                                                context,
+                                                "Please grant the required permission",
+                                                Toast.LENGTH_SHORT
+                                            )
+                                                .show()
+                                            return@forEach
+                                        }
+                                    }
+                                    if (allPermissionGranted) {
+                                        Toast.makeText(
+                                            context,
+                                            "all permission granted",
+                                            Toast.LENGTH_SHORT
+                                        )
+                                            .show()
+                                        viewModel.onRenamePermissionGrantedForSdkBelow28()
+                                    }
+                                }
+                                multiplePermissionRequestLauncher.launch(result.deniedPermission)
+                                Log.d(TAG, "SharedStorageMedia: launcing permission launcher")
                             }
                         }
                     }

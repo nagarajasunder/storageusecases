@@ -1,8 +1,2 @@
 
-dkotlin:S1128
-"Remove this unused import.(œô”şúÿÿÿÿ8éÓûÓ2J$3642454f-6112-4283-939c-bd99c0bddc92
-dkotlin:S1128"Remove this unused import.(½ùÒ»ÿÿÿÿÿ8éÓûÓ2J$4733ac58-db4d-4faf-af65-1741eadd49b8
-_kotlin:S1128"Remove this unused import.(ÔÍÀï8éÓûÓ2J$4ec263e6-af95-4178-8139-a4da1a352390
-_kotlin:S1128$"Remove this unused import.(ŠëÙ 8˜§„Ô2J$8c62c4f5-e4c3-45c2-9dff-40e5576ede20
-_kotlin:S1128:"Remove this unused import.(»‘Ùù8êÓûÓ2J$30311992-9e6e-4403-9e57-2a9d80197db9
-—kotlin:S3776@"RRefactor this method to reduce its Cognitive Complexity from 74 to the 15 allowed.(Õã¥Ê8óÓûÓ2J$3f448e72-03a4-49f4-810d-ee918fac1c27
+˜kotlin:S3776?"SRefactor this method to reduce its Cognitive Complexity from 109 to the 15 allowed.(Õã¥Ê8ù€Û2J$f51bf24d-a9e7-4510-81f2-b020581af177

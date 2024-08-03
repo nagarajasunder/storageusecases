@@ -5,26 +5,32 @@ import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
-import android.database.ContentObservable
 import android.database.ContentObserver
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.Handler
-import android.os.Looper
 import android.os.storage.StorageManager
+import android.provider.DocumentsContract
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.content.getSystemService
 import com.geekydroid.storageusecases.BuildConfig
-import com.geekydroid.storageusecases.core.utils.StorageUtils.registerObserver
 import com.geekydroid.storageusecases.ui.features.sharedstoragemedia.models.MediaStoreImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.BufferedReader
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileNotFoundException
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.io.InputStreamReader
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Date
@@ -243,16 +249,55 @@ object StorageUtils {
         }
     }
 
-    fun deletedSharedMediaFile(context: Context, mediaId:Long,contentUri: Uri) : Int {
+    fun deletedSharedMediaFile(context: Context, mediaId: Long, contentUri: Uri): Int {
         try {
             val contentResolver = context.contentResolver
             val selection = "${MediaStore.Images.Media._ID} = ?"
             val selectionArgs = arrayOf(mediaId.toString())
-            val numImageDeleted = contentResolver.delete(contentUri,selection,selectionArgs)
+            val numImageDeleted = contentResolver.delete(contentUri, selection, selectionArgs)
             return numImageDeleted
-        } catch (securityException:SecurityException) {
+        } catch (securityException: SecurityException) {
             throw securityException
         }
     }
 
+
+    fun getDocumentName(suffix: String): String {
+        return "doc_${getFileTimeStamp()}${suffix}"
+    }
+
+    fun createOrEditTextDocument(context: Context, uri: Uri, content: String) {
+        val contentResolver = context.contentResolver
+        try {
+            contentResolver.openFileDescriptor(uri, "w")?.use { fileDescriptor ->
+                FileOutputStream(fileDescriptor.fileDescriptor).use { fos ->
+                    fos.write(("${content}\n").toByteArray())
+                }
+            }
+        } catch (e: FileNotFoundException) {
+            Log.d(TAG, "createNewDocument: File not found ${e.printStackTrace()}")
+        } catch (e: IOException) {
+            Log.d(TAG, "createNewDocument: IO Exception ${e.printStackTrace()}")
+        }
+    }
+
+    fun deleteDocument(context: Context, uri: Uri) {
+        val contentResolver = context.contentResolver
+        DocumentsContract.deleteDocument(contentResolver, uri)
+    }
+
+    fun getDocumentContent(context: Context, uri: Uri): String {
+        val contentResolver = context.contentResolver
+        val stringBuilder = StringBuilder()
+        contentResolver.openInputStream(uri).use { fis ->
+            BufferedReader(InputStreamReader(fis)).use { bufferedReader ->
+                var line: String? = bufferedReader.readLine()
+                while (line != null) {
+                    stringBuilder.appendLine(line)
+                    line = bufferedReader.readLine()
+                }
+            }
+        }
+        return stringBuilder.toString()
+    }
 }

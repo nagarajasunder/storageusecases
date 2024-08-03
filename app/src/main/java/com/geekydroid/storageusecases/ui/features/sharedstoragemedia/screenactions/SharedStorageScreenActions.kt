@@ -18,4 +18,5 @@ interface SharedStorageScreenActions {
     fun onImageRenamePermissionGranted()
     fun onDeleteImageClick()
     fun onDeletePermissionGranted()
+    fun onRenamePermissionGrantedForSdkBelow28()
 }
